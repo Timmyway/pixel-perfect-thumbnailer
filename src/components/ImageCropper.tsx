@@ -48,6 +48,17 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     }
   }, []);
 
+  // Update crop dimensions when export settings change
+  useEffect(() => {
+    if (cropData.width !== exportSettings.targetWidth || cropData.height !== exportSettings.targetHeight) {
+      onCropChange({
+        ...cropData,
+        width: exportSettings.targetWidth,
+        height: exportSettings.targetHeight
+      });
+    }
+  }, [exportSettings.targetWidth, exportSettings.targetHeight]);
+
   // Draw canvas
   useEffect(() => {
     if (!canvasRef.current || !image || !containerSize.width) return;
@@ -115,6 +126,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     const tempCtx = tempCanvas.getContext('2d');
     if (!tempCtx) return;
 
+    // Set canvas to exact target dimensions
     tempCanvas.width = exportSettings.targetWidth;
     tempCanvas.height = exportSettings.targetHeight;
 
@@ -132,18 +144,19 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     const offsetX = (containerWidth - scaledWidth) / 2;
     const offsetY = (containerHeight - scaledHeight) / 2;
 
-    // Calculate source coordinates
-    const sourceX = (cropData.x - offsetX) / scale;
-    const sourceY = (cropData.y - offsetY) / scale;
-    const sourceWidth = cropData.width / scale;
-    const sourceHeight = cropData.height / scale;
+    // Calculate source coordinates on the original image
+    const sourceX = Math.max(0, (cropData.x - offsetX) / scale);
+    const sourceY = Math.max(0, (cropData.y - offsetY) / scale);
+    const sourceWidth = Math.min(cropData.width / scale, image.width - sourceX);
+    const sourceHeight = Math.min(cropData.height / scale, image.height - sourceY);
 
+    // Draw the cropped portion to fill the entire target canvas
     tempCtx.drawImage(
       image,
-      Math.max(0, sourceX),
-      Math.max(0, sourceY),
-      Math.min(sourceWidth, image.width - sourceX),
-      Math.min(sourceHeight, image.height - sourceY),
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
       0,
       0,
       exportSettings.targetWidth,
@@ -202,16 +215,8 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
         x: newX,
         y: newY
       });
-    } else if (isResizing) {
-      const newWidth = Math.max(50, x - cropData.x);
-      const newHeight = Math.max(50, y - cropData.y);
-      
-      onCropChange({
-        ...cropData,
-        width: Math.min(newWidth, containerSize.width - cropData.x),
-        height: Math.min(newHeight, containerSize.height - cropData.y)
-      });
     }
+    // Note: Resizing is disabled since crop size is now controlled by output dimensions
   }, [isDragging, isResizing, dragStart, cropData, containerSize, onCropChange]);
 
   const handleMouseUp = useCallback(() => {

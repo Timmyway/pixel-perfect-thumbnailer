@@ -32,8 +32,50 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
     onExportSettingsChange({ format });
   };
 
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+  };
+
   return (
     <div className="space-y-6">
+      {/* Dimensions */}
+      <div>
+        <Label className="text-sm font-medium text-slate-700 mb-3 block">
+          Output Dimensions (Crop Size)
+        </Label>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="target-width" className="text-xs text-slate-600">Width (px)</Label>
+            <Input
+              id="target-width"
+              type="number"
+              value={exportSettings.targetWidth}
+              onChange={(e) => handleDimensionChange('targetWidth', e.target.value)}
+              onFocus={handleInputFocus}
+              className="mt-1"
+              min="1"
+              max="4096"
+            />
+          </div>
+          <div>
+            <Label htmlFor="target-height" className="text-xs text-slate-600">Height (px)</Label>
+            <Input
+              id="target-height"
+              type="number"
+              value={exportSettings.targetHeight}
+              onChange={(e) => handleDimensionChange('targetHeight', e.target.value)}
+              onFocus={handleInputFocus}
+              className="mt-1"
+              min="1"
+              max="4096"
+            />
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 mt-2">
+          This sets both the crop area size and final output dimensions
+        </div>
+      </div>
+
       {/* Format Selection */}
       <div>
         <Label className="text-sm font-medium text-slate-700 mb-3 block">
@@ -49,39 +91,6 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
             <SelectItem value="png">PNG</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-
-      {/* Dimensions */}
-      <div>
-        <Label className="text-sm font-medium text-slate-700 mb-3 block">
-          Output Dimensions
-        </Label>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="target-width" className="text-xs text-slate-600">Width (px)</Label>
-            <Input
-              id="target-width"
-              type="number"
-              value={exportSettings.targetWidth}
-              onChange={(e) => handleDimensionChange('targetWidth', e.target.value)}
-              className="mt-1"
-              min="1"
-              max="4096"
-            />
-          </div>
-          <div>
-            <Label htmlFor="target-height" className="text-xs text-slate-600">Height (px)</Label>
-            <Input
-              id="target-height"
-              type="number"
-              value={exportSettings.targetHeight}
-              onChange={(e) => handleDimensionChange('targetHeight', e.target.value)}
-              className="mt-1"
-              min="1"
-              max="4096"
-            />
-          </div>
-        </div>
       </div>
 
       {/* Quality Control */}

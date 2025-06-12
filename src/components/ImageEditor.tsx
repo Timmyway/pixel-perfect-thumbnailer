@@ -30,15 +30,15 @@ export const ImageEditor = () => {
   const [cropData, setCropData] = useState<CropData>({
     x: 0,
     y: 0,
-    width: 200,
-    height: 200,
+    width: 320,
+    height: 240,
     zoom: 1
   });
   const [exportSettings, setExportSettings] = useState<ExportSettings>({
     format: 'webp',
     quality: 0.9,
-    targetWidth: 200,
-    targetHeight: 200
+    targetWidth: 320,
+    targetHeight: 240
   });
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
 
@@ -49,11 +49,29 @@ export const ImageEditor = () => {
 
   const handleCropChange = useCallback((newCropData: CropData) => {
     setCropData(newCropData);
+    // Update export settings to match crop dimensions
+    setExportSettings(prev => ({
+      ...prev,
+      targetWidth: Math.round(newCropData.width),
+      targetHeight: Math.round(newCropData.height)
+    }));
   }, []);
 
   const handleExportSettingsChange = useCallback((newSettings: Partial<ExportSettings>) => {
     setExportSettings(prev => ({ ...prev, ...newSettings }));
-  }, []);
+    
+    // If dimensions changed, update crop area to maintain aspect ratio
+    if (newSettings.targetWidth !== undefined || newSettings.targetHeight !== undefined) {
+      const newWidth = newSettings.targetWidth ?? exportSettings.targetWidth;
+      const newHeight = newSettings.targetHeight ?? exportSettings.targetHeight;
+      
+      setCropData(prev => ({
+        ...prev,
+        width: newWidth,
+        height: newHeight
+      }));
+    }
+  }, [exportSettings]);
 
   const handleCroppedImageUpdate = useCallback((croppedDataUrl: string) => {
     setCroppedImage(croppedDataUrl);
@@ -65,9 +83,15 @@ export const ImageEditor = () => {
     setCropData({
       x: 0,
       y: 0,
-      width: 200,
-      height: 200,
+      width: 320,
+      height: 240,
       zoom: 1
+    });
+    setExportSettings({
+      format: 'webp',
+      quality: 0.9,
+      targetWidth: 320,
+      targetHeight: 240
     });
     toast.info('Editor reset');
   }, []);
@@ -137,18 +161,18 @@ export const ImageEditor = () => {
         {/* Controls & Preview */}
         <div className="space-y-6">
           <Card className="p-6 shadow-lg">
-            <h3 className="text-lg font-medium text-slate-800 mb-4">Controls</h3>
-            <CropControls
-              cropData={cropData}
-              onCropChange={handleCropChange}
+            <h3 className="text-lg font-medium text-slate-800 mb-4">Output Settings</h3>
+            <ExportControls
+              exportSettings={exportSettings}
+              onExportSettingsChange={handleExportSettingsChange}
             />
           </Card>
 
           <Card className="p-6 shadow-lg">
-            <h3 className="text-lg font-medium text-slate-800 mb-4">Export Settings</h3>
-            <ExportControls
-              exportSettings={exportSettings}
-              onExportSettingsChange={handleExportSettingsChange}
+            <h3 className="text-lg font-medium text-slate-800 mb-4">Crop Controls</h3>
+            <CropControls
+              cropData={cropData}
+              onCropChange={handleCropChange}
             />
           </Card>
 

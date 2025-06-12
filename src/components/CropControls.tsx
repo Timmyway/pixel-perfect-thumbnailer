@@ -31,12 +31,8 @@ export const CropControls: React.FC<CropControlsProps> = ({
     });
   };
 
-  const handleSizeChange = (field: 'width' | 'height', value: string) => {
-    const numValue = parseInt(value) || 50;
-    onCropChange({
-      ...cropData,
-      [field]: Math.max(50, numValue)
-    });
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
   };
 
   return (
@@ -87,6 +83,7 @@ export const CropControls: React.FC<CropControlsProps> = ({
               type="number"
               value={Math.round(cropData.x)}
               onChange={(e) => handlePositionChange('x', e.target.value)}
+              onFocus={handleInputFocus}
               className="mt-1"
             />
           </div>
@@ -97,38 +94,22 @@ export const CropControls: React.FC<CropControlsProps> = ({
               type="number"
               value={Math.round(cropData.y)}
               onChange={(e) => handlePositionChange('y', e.target.value)}
+              onFocus={handleInputFocus}
               className="mt-1"
             />
           </div>
         </div>
       </div>
 
-      {/* Size Controls */}
-      <div>
-        <Label className="text-sm font-medium text-slate-700 mb-3 block">
-          Crop Size
-        </Label>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="crop-width" className="text-xs text-slate-600">Width</Label>
-            <Input
-              id="crop-width"
-              type="number"
-              value={Math.round(cropData.width)}
-              onChange={(e) => handleSizeChange('width', e.target.value)}
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="crop-height" className="text-xs text-slate-600">Height</Label>
-            <Input
-              id="crop-height"
-              type="number"
-              value={Math.round(cropData.height)}
-              onChange={(e) => handleSizeChange('height', e.target.value)}
-              className="mt-1"
-            />
-          </div>
+      {/* Current Crop Info */}
+      <div className="p-3 bg-slate-50 rounded-lg">
+        <div className="text-xs text-slate-600">
+          <div>Crop Size: <span className="font-medium">{Math.round(cropData.width)} × {Math.round(cropData.height)}</span></div>
+          <div>Position: <span className="font-medium">({Math.round(cropData.x)}, {Math.round(cropData.y)})</span></div>
+          <div>Zoom: <span className="font-medium">{(cropData.zoom * 100).toFixed(0)}%</span></div>
+        </div>
+        <div className="text-xs text-slate-500 mt-1">
+          Crop size is controlled by Output Dimensions above
         </div>
       </div>
     </div>
