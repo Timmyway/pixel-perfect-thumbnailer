@@ -24,14 +24,29 @@ export const ThumbnailPreview: React.FC<ThumbnailPreviewProps> = ({
     );
   }
 
+  // Calculate preview size maintaining aspect ratio
+  const aspectRatio = exportSettings.targetWidth / exportSettings.targetHeight;
+  const maxPreviewSize = 200;
+  
+  let previewWidth, previewHeight;
+  if (aspectRatio > 1) {
+    // Landscape
+    previewWidth = Math.min(maxPreviewSize, exportSettings.targetWidth);
+    previewHeight = previewWidth / aspectRatio;
+  } else {
+    // Portrait or square
+    previewHeight = Math.min(maxPreviewSize, exportSettings.targetHeight);
+    previewWidth = previewHeight * aspectRatio;
+  }
+
   return (
     <div className="space-y-4">
-      <div className="relative">
+      <div className="relative flex justify-center">
         <div 
-          className="mx-auto bg-white rounded-lg shadow-md overflow-hidden border"
+          className="bg-white rounded-lg shadow-md overflow-hidden border relative"
           style={{
-            maxWidth: `${Math.min(exportSettings.targetWidth, 200)}px`,
-            maxHeight: `${Math.min(exportSettings.targetHeight, 200)}px`
+            width: `${previewWidth}px`,
+            height: `${previewHeight}px`
           }}
         >
           <img
@@ -39,13 +54,13 @@ export const ThumbnailPreview: React.FC<ThumbnailPreviewProps> = ({
             alt="Thumbnail preview"
             className="w-full h-full object-cover"
             style={{
-              width: `${Math.min(exportSettings.targetWidth, 200)}px`,
-              height: `${Math.min(exportSettings.targetHeight, 200)}px`
+              width: '100%',
+              height: '100%'
             }}
           />
-        </div>
-        <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-md shadow">
-          {exportSettings.targetWidth} × {exportSettings.targetHeight}
+          <div className="absolute -bottom-2 -right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-md shadow whitespace-nowrap">
+            {exportSettings.targetWidth} × {exportSettings.targetHeight}
+          </div>
         </div>
       </div>
       
@@ -55,6 +70,9 @@ export const ThumbnailPreview: React.FC<ThumbnailPreviewProps> = ({
         </div>
         <div className="text-xs text-slate-500">
           {exportSettings.format.toUpperCase()} • {exportSettings.targetWidth}×{exportSettings.targetHeight}
+        </div>
+        <div className="text-xs text-slate-400 mt-1">
+          Aspect ratio: {(exportSettings.targetWidth / exportSettings.targetHeight).toFixed(2)}:1
         </div>
       </div>
     </div>

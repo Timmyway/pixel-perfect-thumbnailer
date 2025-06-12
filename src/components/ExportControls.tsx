@@ -4,12 +4,29 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
 import { ExportSettings } from './ImageEditor';
 
 interface ExportControlsProps {
   exportSettings: ExportSettings;
   onExportSettingsChange: (settings: Partial<ExportSettings>) => void;
 }
+
+const PRESET_SIZES = [
+  { name: 'Custom', width: 0, height: 0 },
+  { name: 'Instagram Square', width: 1080, height: 1080 },
+  { name: 'Instagram Portrait', width: 1080, height: 1350 },
+  { name: 'Instagram Story', width: 1080, height: 1920 },
+  { name: 'YouTube Thumbnail', width: 1280, height: 720 },
+  { name: 'Facebook Cover', width: 820, height: 312 },
+  { name: 'Twitter Header', width: 1500, height: 500 },
+  { name: 'LinkedIn Banner', width: 1584, height: 396 },
+  { name: 'Standard Thumbnail', width: 320, height: 240 },
+  { name: 'Small Avatar', width: 128, height: 128 },
+  { name: 'Medium Avatar', width: 256, height: 256 },
+  { name: 'HD (16:9)', width: 1920, height: 1080 },
+  { name: '4K (16:9)', width: 3840, height: 2160 },
+];
 
 export const ExportControls: React.FC<ExportControlsProps> = ({
   exportSettings,
@@ -20,6 +37,23 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
     onExportSettingsChange({
       [field]: Math.max(1, Math.min(4096, numValue))
     });
+  };
+
+  const handlePresetChange = (presetName: string) => {
+    const preset = PRESET_SIZES.find(p => p.name === presetName);
+    if (preset && preset.width > 0 && preset.height > 0) {
+      onExportSettingsChange({
+        targetWidth: preset.width,
+        targetHeight: preset.height
+      });
+    }
+  };
+
+  const getCurrentPreset = () => {
+    const current = PRESET_SIZES.find(p => 
+      p.width === exportSettings.targetWidth && p.height === exportSettings.targetHeight
+    );
+    return current?.name || 'Custom';
   };
 
   const handleQualityChange = (value: number[]) => {
@@ -38,14 +72,38 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Dimensions */}
+      {/* Preset Sizes */}
       <div>
         <Label className="text-sm font-medium text-slate-700 mb-3 block">
-          Output Dimensions (Crop Size)
+          Size Presets
+        </Label>
+        <Select value={getCurrentPreset()} onValueChange={handlePresetChange}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PRESET_SIZES.map((preset) => (
+              <SelectItem key={preset.name} value={preset.name}>
+                {preset.name}
+                {preset.width > 0 && (
+                  <span className="text-xs text-slate-500 ml-2">
+                    ({preset.width} × {preset.height})
+                  </span>
+                )}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Manual Dimensions */}
+      <div>
+        <Label className="text-sm font-medium text-slate-700 mb-3 block">
+          Custom Dimensions (px)
         </Label>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="target-width" className="text-xs text-slate-600">Width (px)</Label>
+            <Label htmlFor="target-width" className="text-xs text-slate-600">Width</Label>
             <Input
               id="target-width"
               type="number"
@@ -58,7 +116,7 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
             />
           </div>
           <div>
-            <Label htmlFor="target-height" className="text-xs text-slate-600">Height (px)</Label>
+            <Label htmlFor="target-height" className="text-xs text-slate-600">Height</Label>
             <Input
               id="target-height"
               type="number"
@@ -122,6 +180,7 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
           {exportSettings.format !== 'png' && (
             <div>Quality: <span className="font-medium">{Math.round(exportSettings.quality * 100)}%</span></div>
           )}
+          <div>Aspect Ratio: <span className="font-medium">{(exportSettings.targetWidth / exportSettings.targetHeight).toFixed(2)}:1</span></div>
         </div>
       </div>
     </div>
