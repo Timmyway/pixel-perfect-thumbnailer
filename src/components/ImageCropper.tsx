@@ -107,10 +107,16 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     ctx.lineWidth = 2;
     
     const handles = [
+      // Corner handles
       { x: cropData.x - handleSize/2, y: cropData.y - handleSize/2 }, // top-left
       { x: cropData.x + cropData.width - handleSize/2, y: cropData.y - handleSize/2 }, // top-right
       { x: cropData.x - handleSize/2, y: cropData.y + cropData.height - handleSize/2 }, // bottom-left
-      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y + cropData.height - handleSize/2 } // bottom-right
+      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y + cropData.height - handleSize/2 }, // bottom-right
+      // Edge handles
+      { x: cropData.x + cropData.width/2 - handleSize/2, y: cropData.y - handleSize/2 }, // top
+      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y + cropData.height/2 - handleSize/2 }, // right
+      { x: cropData.x + cropData.width/2 - handleSize/2, y: cropData.y + cropData.height - handleSize/2 }, // bottom
+      { x: cropData.x - handleSize/2, y: cropData.y + cropData.height/2 - handleSize/2 } // left
     ];
 
     handles.forEach(handle => {
@@ -161,10 +167,16 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   const getHandleAtPosition = (x: number, y: number) => {
     const handleSize = 12;
     const handles = [
-      { x: cropData.x - handleSize/2, y: cropData.y - handleSize/2 },
-      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y - handleSize/2 },
-      { x: cropData.x - handleSize/2, y: cropData.y + cropData.height - handleSize/2 },
-      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y + cropData.height - handleSize/2 }
+      // Corner handles
+      { x: cropData.x - handleSize/2, y: cropData.y - handleSize/2, cursor: 'nw-resize' }, // 0: top-left
+      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y - handleSize/2, cursor: 'ne-resize' }, // 1: top-right
+      { x: cropData.x - handleSize/2, y: cropData.y + cropData.height - handleSize/2, cursor: 'sw-resize' }, // 2: bottom-left
+      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y + cropData.height - handleSize/2, cursor: 'se-resize' }, // 3: bottom-right
+      // Edge handles
+      { x: cropData.x + cropData.width/2 - handleSize/2, y: cropData.y - handleSize/2, cursor: 'n-resize' }, // 4: top
+      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y + cropData.height/2 - handleSize/2, cursor: 'e-resize' }, // 5: right
+      { x: cropData.x + cropData.width/2 - handleSize/2, y: cropData.y + cropData.height - handleSize/2, cursor: 's-resize' }, // 6: bottom
+      { x: cropData.x - handleSize/2, y: cropData.y + cropData.height/2 - handleSize/2, cursor: 'w-resize' } // 7: left
     ];
 
     return handles.findIndex(handle => 
@@ -228,25 +240,39 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
 
       // Calculate new dimensions based on which handle is being dragged
       switch (resizeHandle) {
-        case 0: // top-left
+        case 0: // top-left corner
           newX = Math.max(0, cropData.x + deltaX);
           newY = Math.max(0, cropData.y + deltaY);
           newWidth = cropData.width - deltaX;
           newHeight = cropData.height - deltaY;
           break;
-        case 1: // top-right
+        case 1: // top-right corner
           newY = Math.max(0, cropData.y + deltaY);
           newWidth = cropData.width + deltaX;
           newHeight = cropData.height - deltaY;
           break;
-        case 2: // bottom-left
+        case 2: // bottom-left corner
           newX = Math.max(0, cropData.x + deltaX);
           newWidth = cropData.width - deltaX;
           newHeight = cropData.height + deltaY;
           break;
-        case 3: // bottom-right
+        case 3: // bottom-right corner
           newWidth = cropData.width + deltaX;
           newHeight = cropData.height + deltaY;
+          break;
+        case 4: // top edge
+          newY = Math.max(0, cropData.y + deltaY);
+          newHeight = cropData.height - deltaY;
+          break;
+        case 5: // right edge
+          newWidth = cropData.width + deltaX;
+          break;
+        case 6: // bottom edge
+          newHeight = cropData.height + deltaY;
+          break;
+        case 7: // left edge
+          newX = Math.max(0, cropData.x + deltaX);
+          newWidth = cropData.width - deltaX;
           break;
       }
 
@@ -278,7 +304,10 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
 
     const handle = getHandleAtPosition(x, y);
     if (handle !== -1) {
-      const cursors = ['nw-resize', 'ne-resize', 'sw-resize', 'se-resize'];
+      const cursors = [
+        'nw-resize', 'ne-resize', 'sw-resize', 'se-resize', // corners
+        'n-resize', 'e-resize', 's-resize', 'w-resize' // edges
+      ];
       setCursor(cursors[handle]);
       return;
     }
