@@ -9,9 +9,9 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Get the base path from environment variable or fallback to default
+// Get the base path from environment variable or default to root for Lovable deployment
 const basename = import.meta.env.MODE === 'production' 
-  ? (import.meta.env.VITE_BASE_PATH || '/tools/kthumbnailer') 
+  ? (import.meta.env.VITE_BASE_PATH || '/') 
   : '/';
 
 const App = () => (
