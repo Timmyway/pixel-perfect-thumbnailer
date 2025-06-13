@@ -9,8 +9,10 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Get the base path from the build mode
-const basename = import.meta.env.MODE === 'production' ? '/tools/kthumbnailer' : '/';
+// Get the base path from environment variable or fallback to default
+const basename = import.meta.env.MODE === 'production' 
+  ? (import.meta.env.VITE_BASE_PATH || '/tools/kthumbnailer') 
+  : '/';
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
