@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ImageCropper } from './ImageCropper';
 import { ImageUpload } from './ImageUpload';
-import { CropControls } from './CropControls';
-import { ExportControls } from './ExportControls';
+import { TabControls } from './TabControls';
 import { ThumbnailPreview } from './ThumbnailPreview';
 import { toast } from 'sonner';
 
@@ -49,13 +48,16 @@ export const ImageEditor = () => {
 
   const handleCropChange = useCallback((newCropData: CropData) => {
     setCropData(newCropData);
-    // Update export settings to match crop dimensions
-    setExportSettings(prev => ({
-      ...prev,
-      targetWidth: Math.round(newCropData.width),
-      targetHeight: Math.round(newCropData.height)
-    }));
-  }, []);
+    
+    // Only update export settings if the change comes from manual resizing (not from export settings change)
+    if (newCropData.width !== exportSettings.targetWidth || newCropData.height !== exportSettings.targetHeight) {
+      setExportSettings(prev => ({
+        ...prev,
+        targetWidth: Math.round(newCropData.width),
+        targetHeight: Math.round(newCropData.height)
+      }));
+    }
+  }, [exportSettings]);
 
   const handleExportSettingsChange = useCallback((newSettings: Partial<ExportSettings>) => {
     setExportSettings(prev => ({ ...prev, ...newSettings }));
@@ -147,7 +149,12 @@ export const ImageEditor = () => {
         {/* Main Editor */}
         <div className="lg:col-span-2">
           <Card className="p-6 shadow-lg">
-            <h3 className="text-lg font-medium text-slate-800 mb-4">Crop & Resize</h3>
+            <h3 className="text-lg font-medium text-slate-800 mb-4">
+              Crop & Resize
+              <span className="text-sm text-slate-500 ml-2 font-normal">
+                • Drag to move crop area • Drag corners to resize • Drag outside to pan image when zoomed
+              </span>
+            </h3>
             <ImageCropper
               imageUrl={originalImage}
               cropData={cropData}
@@ -161,18 +168,12 @@ export const ImageEditor = () => {
         {/* Controls & Preview */}
         <div className="space-y-6">
           <Card className="p-6 shadow-lg">
-            <h3 className="text-lg font-medium text-slate-800 mb-4">Output Settings</h3>
-            <ExportControls
-              exportSettings={exportSettings}
-              onExportSettingsChange={handleExportSettingsChange}
-            />
-          </Card>
-
-          <Card className="p-6 shadow-lg">
-            <h3 className="text-lg font-medium text-slate-800 mb-4">Crop Controls</h3>
-            <CropControls
+            <h3 className="text-lg font-medium text-slate-800 mb-4">Settings</h3>
+            <TabControls
               cropData={cropData}
               onCropChange={handleCropChange}
+              exportSettings={exportSettings}
+              onExportSettingsChange={handleExportSettingsChange}
             />
           </Card>
 

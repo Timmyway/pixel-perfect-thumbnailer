@@ -1,19 +1,26 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
+import { Plus, Trash2 } from 'lucide-react';
 import { ExportSettings } from './ImageEditor';
+import { toast } from 'sonner';
 
 interface ExportControlsProps {
   exportSettings: ExportSettings;
   onExportSettingsChange: (settings: Partial<ExportSettings>) => void;
 }
 
-const PRESET_SIZES = [
-  { name: 'Custom', width: 0, height: 0 },
+interface CustomPreset {
+  name: string;
+  width: number;
+  height: number;
+}
+
+const DEFAULT_PRESETS = [
   { name: 'Instagram Square', width: 1080, height: 1080 },
   { name: 'Instagram Portrait', width: 1080, height: 1350 },
   { name: 'Instagram Story', width: 1080, height: 1920 },
@@ -32,6 +39,28 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
   exportSettings,
   onExportSettingsChange
 }) => {
+  const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
+  const [newPresetName, setNewPresetName] = useState('');
+
+  // Load custom presets from localStorage on component mount
+  useEffect(() => {
+    const saved = localStorage.getItem('kthumbnailer-custom-presets');
+    if (saved) {
+      try {
+        setCustomPresets(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load custom presets:', e);
+      }
+    }
+  }, []);
+
+  // Save custom presets to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('kthumbnailer-custom-presets', JSON.stringify(customPresets));
+  }, [customPresets]);
+
+  const allPresets = [...DEFAULT_PRESETS, ...customPresets];
+
   const handleDimensionChange = (field: 'targetWidth' | 'targetHeight', value: string) => {
     const numValue = parseInt(value) || 1;
     onExportSettingsChange({
@@ -40,8 +69,10 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
   };
 
   const handlePresetChange = (presetName: string) => {
-    const preset = PRESET_SIZES.find(p => p.name === presetName);
-    if (preset && preset.width > 0 && preset.height > 0) {
+    if (presetName === 'custom') return;
+    
+    const preset = allPresets.find(p => p.name === presetName);
+    if (preset) {
       onExportSettingsChange({
         targetWidth: preset.width,
         targetHeight: preset.height
@@ -50,10 +81,37 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
   };
 
   const getCurrentPreset = () => {
-    const current = PRESET_SIZES.find(p => 
+    const current = allPresets.find(p => 
       p.width === exportSettings.targetWidth && p.height === exportSettings.targetHeight
     );
-    return current?.name || 'Custom';
+    return current?.name || 'custom';
+  };
+
+  const handleSavePreset = () => {
+    if (!newPresetName.trim()) {
+      toast.error('Please enter a preset name');
+      return;
+    }
+
+    if (allPresets.some(p => p.name === newPresetName.trim())) {
+      toast.error('A preset with this name already exists');
+      return;
+    }
+
+    const newPreset: CustomPreset = {
+      name: newPresetName.trim(),
+      width: exportSettings.targetWidth,
+      height: exportSettings.targetHeight
+    };
+
+    setCustomPresets(prev => [...prev, newPreset]);
+    setNewPresetName('');
+    toast.success('Custom preset saved!');
+  };
+
+  const handleDeletePreset = (presetName: string) => {
+    setCustomPresets(prev => prev.filter(p => p.name !== presetName));
+    toast.success('Preset deleted');
   };
 
   const handleQualityChange = (value: number[]) => {
@@ -82,18 +140,66 @@ export const ExportControls: React.FC<ExportControlsProps> = ({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {PRESET_SIZES.map((preset) => (
+            <SelectItem value="custom">Custom</SelectItem>
+            {DEFAULT_PRESETS.map((preset) => (
               <SelectItem key={preset.name} value={preset.name}>
                 {preset.name}
-                {preset.width > 0 && (
-                  <span className="text-xs text-slate-500 ml-2">
-                    ({preset.width} × {preset.height})
-                  </span>
-                )}
+                <span className="text-xs text-slate-500 ml-2">
+                  ({preset.width} × {preset.height})
+                </span>
               </SelectItem>
             ))}
+            {customPresets.length > 0 && (
+              <>
+                <SelectItem value="separator" disabled className="border-t pt-2">
+                  Custom Presets
+                </SelectItem>
+                {customPresets.map((preset) => (
+                  <SelectItem key={preset.name} value={preset.name}>
+                    <div className="flex items-center justify-between w-full">
+                      <span>
+                        {preset.name}
+                        <span className="text-xs text-slate-500 ml-2">
+                          ({preset.width} × {preset.height})
+                        </span>
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePreset(preset.name);
+                        }}
+                        className="p-1 h-auto text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </SelectItem>
+                ))}
+              </>
+            )}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Save Custom Preset */}
+      <div>
+        <Label className="text-sm font-medium text-slate-700 mb-3 block">
+          Save Current Size as Preset
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Enter preset name"
+            value={newPresetName}
+            onChange={(e) => setNewPresetName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
+          />
+          <Button onClick={handleSavePreset} size="sm" className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            Save
+          </Button>
+        </div>
       </div>
 
       {/* Manual Dimensions */}
