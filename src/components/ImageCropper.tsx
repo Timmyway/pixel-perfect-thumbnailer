@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { CropData, ExportSettings } from './ImageEditor';
 
@@ -27,6 +26,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   const [resizeHandle, setResizeHandle] = useState(-1);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
+  const [cursor, setCursor] = useState<string>('grab');
 
   // Load image
   useEffect(() => {
@@ -271,7 +271,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     setResizeHandle(-1);
   }, []);
 
-  const getCursor = useCallback((e: React.MouseEvent) => {
+  const handleMouseMoveForCursor = useCallback((e: React.MouseEvent) => {
     const rect = canvasRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -279,15 +279,17 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     const handle = getHandleAtPosition(x, y);
     if (handle !== -1) {
       const cursors = ['nw-resize', 'ne-resize', 'sw-resize', 'se-resize'];
-      return cursors[handle];
+      setCursor(cursors[handle]);
+      return;
     }
 
     if (x >= cropData.x && x <= cropData.x + cropData.width &&
         y >= cropData.y && y <= cropData.y + cropData.height) {
-      return 'move';
+      setCursor('move');
+      return;
     }
 
-    return 'grab';
+    setCursor('grab');
   }, [cropData]);
 
   return (
@@ -299,9 +301,12 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
       <canvas
         ref={canvasRef}
         className="absolute inset-0"
-        style={{ cursor: getCursor }}
+        style={{ cursor }}
         onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
+        onMouseMove={(e) => {
+          handleMouseMove(e);
+          handleMouseMoveForCursor(e);
+        }}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       />
