@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { CropData, ExportSettings } from './ImageEditor';
 
@@ -100,8 +101,9 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     ctx.lineWidth = 2;
     ctx.strokeRect(cropData.x, cropData.y, cropData.width, cropData.height);
 
-    // Draw resize handles
-    const handleSize = 12;
+    // Draw resize handles (make them larger on mobile)
+    const isMobile = 'ontouchstart' in window;
+    const handleSize = isMobile ? 20 : 12;
     ctx.fillStyle = '#3b82f6';
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
@@ -165,7 +167,8 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   }, [image, cropData, exportSettings, onCroppedImageUpdate]);
 
   const getHandleAtPosition = (x: number, y: number) => {
-    const handleSize = 12;
+    const isMobile = 'ontouchstart' in window;
+    const handleSize = isMobile ? 20 : 12;
     const handles = [
       // Corner handles
       { x: cropData.x - handleSize/2, y: cropData.y - handleSize/2, cursor: 'nw-resize' }, // 0: top-left
@@ -185,10 +188,29 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     );
   };
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  // Helper function to get coordinates from mouse or touch event
+  const getEventCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const rect = canvasRef.current!.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    
+    if ('touches' in e) {
+      // Touch event
+      const touch = e.touches[0] || e.changedTouches[0];
+      return {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+      };
+    } else {
+      // Mouse event
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+  };
+
+  const handleStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    const { x, y } = getEventCoordinates(e);
 
     const clickedHandle = getHandleAtPosition(x, y);
 
@@ -209,12 +231,11 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     }
   }, [cropData, imagePan]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+  const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!isDragging && !isResizing && !isPanning) return;
 
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    e.preventDefault();
+    const { x, y } = getEventCoordinates(e);
 
     if (isPanning) {
       const newPanX = x - dragStart.x;
@@ -290,7 +311,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     }
   }, [isDragging, isResizing, isPanning, dragStart, cropData, containerSize, onCropChange, resizeHandle, imagePan]);
 
-  const handleMouseUp = useCallback(() => {
+  const handleEnd = useCallback(() => {
     setIsDragging(false);
     setIsResizing(false);
     setIsPanning(false);
@@ -329,15 +350,21 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     >
       <canvas
         ref={canvasRef}
-        className="absolute inset-0"
+        className="absolute inset-0 touch-none"
         style={{ cursor }}
-        onMouseDown={handleMouseDown}
+        // Mouse events
+        onMouseDown={handleStart}
         onMouseMove={(e) => {
-          handleMouseMove(e);
+          handleMove(e);
           handleMouseMoveForCursor(e);
         }}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onMouseUp={handleEnd}
+        onMouseLeave={handleEnd}
+        // Touch events for mobile
+        onTouchStart={handleStart}
+        onTouchMove={handleMove}
+        onTouchEnd={handleEnd}
+        onTouchCancel={handleEnd}
       />
     </div>
   );
