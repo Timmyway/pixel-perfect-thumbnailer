@@ -54,6 +54,58 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     }
   }, []);
 
+  // Calculate display dimensions for crop area
+  const getDisplayCropDimensions = useCallback(() => {
+    if (!containerSize.width) return { width: 0, height: 0 };
+    
+    const targetAspectRatio = exportSettings.targetWidth / exportSettings.targetHeight;
+    const containerAspectRatio = containerSize.width / containerSize.height;
+    
+    let displayWidth, displayHeight;
+    
+    // Scale crop area to fit within container while maintaining aspect ratio
+    if (targetAspectRatio > containerAspectRatio) {
+      // Crop is wider than container
+      displayWidth = Math.min(containerSize.width * 0.8, exportSettings.targetWidth * 0.3);
+      displayHeight = displayWidth / targetAspectRatio;
+    } else {
+      // Crop is taller than or same as container
+      displayHeight = Math.min(containerSize.height * 0.8, exportSettings.targetHeight * 0.3);
+      displayWidth = displayHeight * targetAspectRatio;
+    }
+    
+    // Ensure minimum size
+    const minSize = 80;
+    if (displayWidth < minSize || displayHeight < minSize) {
+      if (targetAspectRatio > 1) {
+        displayWidth = minSize;
+        displayHeight = minSize / targetAspectRatio;
+      } else {
+        displayHeight = minSize;
+        displayWidth = minSize * targetAspectRatio;
+      }
+    }
+    
+    return { width: displayWidth, height: displayHeight };
+  }, [containerSize, exportSettings]);
+
+  // Update crop area when export settings change
+  useEffect(() => {
+    if (!containerSize.width) return;
+    
+    const displayDimensions = getDisplayCropDimensions();
+    const centerX = (containerSize.width - displayDimensions.width) / 2;
+    const centerY = (containerSize.height - displayDimensions.height) / 2;
+    
+    onCropChange({
+      ...cropData,
+      x: centerX,
+      y: centerY,
+      width: displayDimensions.width,
+      height: displayDimensions.height
+    });
+  }, [exportSettings.targetWidth, exportSettings.targetHeight, containerSize]);
+
   // Draw canvas
   useEffect(() => {
     if (!canvasRef.current || !image || !containerSize.width) return;
@@ -101,7 +153,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     ctx.lineWidth = 2;
     ctx.strokeRect(cropData.x, cropData.y, cropData.width, cropData.height);
 
-    // Draw resize handles (make them larger on mobile)
+    // Draw resize handles
     const isMobile = 'ontouchstart' in window;
     const handleSize = isMobile ? 20 : 12;
     ctx.fillStyle = '#3b82f6';
@@ -254,52 +306,74 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
       const deltaX = x - dragStart.x;
       const deltaY = y - dragStart.y;
       
+      const targetAspectRatio = exportSettings.targetWidth / exportSettings.targetHeight;
+      const minSize = 80;
+      
       let newX = cropData.x;
       let newY = cropData.y;
       let newWidth = cropData.width;
       let newHeight = cropData.height;
 
       // Calculate new dimensions based on which handle is being dragged
+      // but maintain aspect ratio
       switch (resizeHandle) {
         case 0: // top-left corner
-          newX = Math.max(0, cropData.x + deltaX);
-          newY = Math.max(0, cropData.y + deltaY);
-          newWidth = cropData.width - deltaX;
-          newHeight = cropData.height - deltaY;
+          newWidth = Math.max(minSize, cropData.width - deltaX);
+          newHeight = newWidth / targetAspectRatio;
+          newX = cropData.x + cropData.width - newWidth;
+          newY = cropData.y + cropData.height - newHeight;
           break;
         case 1: // top-right corner
-          newY = Math.max(0, cropData.y + deltaY);
-          newWidth = cropData.width + deltaX;
-          newHeight = cropData.height - deltaY;
+          newWidth = Math.max(minSize, cropData.width + deltaX);
+          newHeight = newWidth / targetAspectRatio;
+          newY = cropData.y + cropData.height - newHeight;
           break;
         case 2: // bottom-left corner
-          newX = Math.max(0, cropData.x + deltaX);
-          newWidth = cropData.width - deltaX;
-          newHeight = cropData.height + deltaY;
+          newWidth = Math.max(minSize, cropData.width - deltaX);
+          newHeight = newWidth / targetAspectRatio;
+          newX = cropData.x + cropData.width - newWidth;
           break;
         case 3: // bottom-right corner
-          newWidth = cropData.width + deltaX;
-          newHeight = cropData.height + deltaY;
+          newWidth = Math.max(minSize, cropData.width + deltaX);
+          newHeight = newWidth / targetAspectRatio;
           break;
         case 4: // top edge
-          newY = Math.max(0, cropData.y + deltaY);
-          newHeight = cropData.height - deltaY;
+          newHeight = Math.max(minSize / targetAspectRatio, cropData.height - deltaY);
+          newWidth = newHeight * targetAspectRatio;
+          newX = cropData.x + (cropData.width - newWidth) / 2;
+          newY = cropData.y + cropData.height - newHeight;
           break;
         case 5: // right edge
-          newWidth = cropData.width + deltaX;
+          newWidth = Math.max(minSize, cropData.width + deltaX);
+          newHeight = newWidth / targetAspectRatio;
+          newY = cropData.y + (cropData.height - newHeight) / 2;
           break;
         case 6: // bottom edge
-          newHeight = cropData.height + deltaY;
+          newHeight = Math.max(minSize / targetAspectRatio, cropData.height + deltaY);
+          newWidth = newHeight * targetAspectRatio;
+          newX = cropData.x + (cropData.width - newWidth) / 2;
           break;
         case 7: // left edge
-          newX = Math.max(0, cropData.x + deltaX);
-          newWidth = cropData.width - deltaX;
+          newWidth = Math.max(minSize, cropData.width - deltaX);
+          newHeight = newWidth / targetAspectRatio;
+          newX = cropData.x + cropData.width - newWidth;
+          newY = cropData.y + (cropData.height - newHeight) / 2;
           break;
       }
 
-      // Ensure minimum size and bounds
-      newWidth = Math.max(50, Math.min(newWidth, containerSize.width - newX));
-      newHeight = Math.max(50, Math.min(newHeight, containerSize.height - newY));
+      // Ensure crop area stays within container bounds
+      newX = Math.max(0, Math.min(newX, containerSize.width - newWidth));
+      newY = Math.max(0, Math.min(newY, containerSize.height - newHeight));
+      
+      // Adjust dimensions if they would exceed container bounds
+      if (newX + newWidth > containerSize.width) {
+        newWidth = containerSize.width - newX;
+        newHeight = newWidth / targetAspectRatio;
+      }
+      if (newY + newHeight > containerSize.height) {
+        newHeight = containerSize.height - newY;
+        newWidth = newHeight * targetAspectRatio;
+      }
 
       onCropChange({
         ...cropData,
@@ -309,7 +383,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
         height: newHeight
       });
     }
-  }, [isDragging, isResizing, isPanning, dragStart, cropData, containerSize, onCropChange, resizeHandle, imagePan]);
+  }, [isDragging, isResizing, isPanning, dragStart, cropData, containerSize, onCropChange, resizeHandle, imagePan, exportSettings]);
 
   const handleEnd = useCallback(() => {
     setIsDragging(false);
@@ -345,7 +419,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-96 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200"
+      className="relative w-full h-96 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700"
       style={{ minHeight: '400px' }}
     >
       <canvas
