@@ -48,32 +48,14 @@ export const ImageEditor = () => {
 
   const handleCropChange = useCallback((newCropData: CropData) => {
     setCropData(newCropData);
-    
-    // Only update export settings if the change comes from manual resizing (not from export settings change)
-    if (newCropData.width !== exportSettings.targetWidth || newCropData.height !== exportSettings.targetHeight) {
-      setExportSettings(prev => ({
-        ...prev,
-        targetWidth: Math.round(newCropData.width),
-        targetHeight: Math.round(newCropData.height)
-      }));
-    }
-  }, [exportSettings]);
+    // Remove the logic that updates export settings based on crop changes
+    // The crop area size is now determined by export settings, not the other way around
+  }, []);
 
   const handleExportSettingsChange = useCallback((newSettings: Partial<ExportSettings>) => {
     setExportSettings(prev => ({ ...prev, ...newSettings }));
-    
-    // If dimensions changed, update crop area to maintain aspect ratio
-    if (newSettings.targetWidth !== undefined || newSettings.targetHeight !== undefined) {
-      const newWidth = newSettings.targetWidth ?? exportSettings.targetWidth;
-      const newHeight = newSettings.targetHeight ?? exportSettings.targetHeight;
-      
-      setCropData(prev => ({
-        ...prev,
-        width: newWidth,
-        height: newHeight
-      }));
-    }
-  }, [exportSettings]);
+    // The cropper will automatically adjust its display size based on the new export settings
+  }, []);
 
   const handleCroppedImageUpdate = useCallback((croppedDataUrl: string) => {
     setCroppedImage(croppedDataUrl);
@@ -124,7 +106,7 @@ export const ImageEditor = () => {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-slate-800">Edit Your Image</h2>
+        <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">Edit Your Image</h2>
         <div className="flex gap-3">
           <Button
             onClick={handleReset}
@@ -149,7 +131,7 @@ export const ImageEditor = () => {
         {/* Main Editor */}
         <div className="lg:col-span-2">
           <Card className="p-6 shadow-lg">
-            <h3 className="text-lg font-medium text-slate-800 mb-4">
+            <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-4">
               Crop & Resize
               <span className="text-sm text-slate-500 ml-2 font-normal">
                 • Drag to move crop area • Drag corners to resize • Drag outside to pan image when zoomed
@@ -168,7 +150,7 @@ export const ImageEditor = () => {
         {/* Controls & Preview */}
         <div className="space-y-6">
           <Card className="p-6 shadow-lg">
-            <h3 className="text-lg font-medium text-slate-800 mb-4">Settings</h3>
+            <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-4">Settings</h3>
             <TabControls
               cropData={cropData}
               onCropChange={handleCropChange}
@@ -178,7 +160,7 @@ export const ImageEditor = () => {
           </Card>
 
           <Card className="p-6 shadow-lg">
-            <h3 className="text-lg font-medium text-slate-800 mb-4">Preview</h3>
+            <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-4">Preview</h3>
             <ThumbnailPreview
               croppedImage={croppedImage}
               exportSettings={exportSettings}

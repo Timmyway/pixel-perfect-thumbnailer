@@ -54,35 +54,39 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     }
   }, []);
 
-  // Calculate display dimensions for crop area
+  // Calculate display dimensions for crop area based on target dimensions
   const getDisplayCropDimensions = useCallback(() => {
     if (!containerSize.width) return { width: 0, height: 0 };
     
     const targetAspectRatio = exportSettings.targetWidth / exportSettings.targetHeight;
-    const containerAspectRatio = containerSize.width / containerSize.height;
     
+    // Calculate a reasonable display size that fits in the container
+    // but represents the target dimensions proportionally
     let displayWidth, displayHeight;
     
-    // Scale crop area to fit within container while maintaining aspect ratio
-    if (targetAspectRatio > containerAspectRatio) {
-      // Crop is wider than container
-      displayWidth = Math.min(containerSize.width * 0.8, exportSettings.targetWidth * 0.3);
+    const maxDisplayWidth = containerSize.width * 0.7;
+    const maxDisplayHeight = containerSize.height * 0.7;
+    
+    // Scale based on which dimension would be the limiting factor
+    if (maxDisplayWidth / targetAspectRatio <= maxDisplayHeight) {
+      // Width constrained
+      displayWidth = maxDisplayWidth;
       displayHeight = displayWidth / targetAspectRatio;
     } else {
-      // Crop is taller than or same as container
-      displayHeight = Math.min(containerSize.height * 0.8, exportSettings.targetHeight * 0.3);
+      // Height constrained
+      displayHeight = maxDisplayHeight;
       displayWidth = displayHeight * targetAspectRatio;
     }
     
-    // Ensure minimum size
-    const minSize = 80;
-    if (displayWidth < minSize || displayHeight < minSize) {
+    // Ensure minimum display size for usability
+    const minDisplaySize = 60;
+    if (displayWidth < minDisplaySize || displayHeight < minDisplaySize) {
       if (targetAspectRatio > 1) {
-        displayWidth = minSize;
-        displayHeight = minSize / targetAspectRatio;
+        displayWidth = Math.max(minDisplaySize, displayWidth);
+        displayHeight = displayWidth / targetAspectRatio;
       } else {
-        displayHeight = minSize;
-        displayWidth = minSize * targetAspectRatio;
+        displayHeight = Math.max(minDisplaySize, displayHeight);
+        displayWidth = displayHeight * targetAspectRatio;
       }
     }
     
@@ -97,13 +101,19 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     const centerX = (containerSize.width - displayDimensions.width) / 2;
     const centerY = (containerSize.height - displayDimensions.height) / 2;
     
-    onCropChange({
+    // Only update if dimensions actually changed to avoid infinite loops
+    const newCropData = {
       ...cropData,
       x: centerX,
       y: centerY,
       width: displayDimensions.width,
       height: displayDimensions.height
-    });
+    };
+
+    if (Math.abs(cropData.width - displayDimensions.width) > 1 || 
+        Math.abs(cropData.height - displayDimensions.height) > 1) {
+      onCropChange(newCropData);
+    }
   }, [exportSettings.targetWidth, exportSettings.targetHeight, containerSize]);
 
   // Draw canvas
@@ -307,54 +317,59 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
       const deltaY = y - dragStart.y;
       
       const targetAspectRatio = exportSettings.targetWidth / exportSettings.targetHeight;
-      const minSize = 80;
+      const minDisplaySize = 30; // Reduced minimum for better precision
       
       let newX = cropData.x;
       let newY = cropData.y;
       let newWidth = cropData.width;
       let newHeight = cropData.height;
 
+      // Slower, more precise resizing with reduced delta sensitivity
+      const sensitivity = 0.5;
+      const adjustedDeltaX = deltaX * sensitivity;
+      const adjustedDeltaY = deltaY * sensitivity;
+
       // Calculate new dimensions based on which handle is being dragged
       // but maintain aspect ratio
       switch (resizeHandle) {
         case 0: // top-left corner
-          newWidth = Math.max(minSize, cropData.width - deltaX);
+          newWidth = Math.max(minDisplaySize, cropData.width - adjustedDeltaX);
           newHeight = newWidth / targetAspectRatio;
           newX = cropData.x + cropData.width - newWidth;
           newY = cropData.y + cropData.height - newHeight;
           break;
         case 1: // top-right corner
-          newWidth = Math.max(minSize, cropData.width + deltaX);
+          newWidth = Math.max(minDisplaySize, cropData.width + adjustedDeltaX);
           newHeight = newWidth / targetAspectRatio;
           newY = cropData.y + cropData.height - newHeight;
           break;
         case 2: // bottom-left corner
-          newWidth = Math.max(minSize, cropData.width - deltaX);
+          newWidth = Math.max(minDisplaySize, cropData.width - adjustedDeltaX);
           newHeight = newWidth / targetAspectRatio;
           newX = cropData.x + cropData.width - newWidth;
           break;
         case 3: // bottom-right corner
-          newWidth = Math.max(minSize, cropData.width + deltaX);
+          newWidth = Math.max(minDisplaySize, cropData.width + adjustedDeltaX);
           newHeight = newWidth / targetAspectRatio;
           break;
         case 4: // top edge
-          newHeight = Math.max(minSize / targetAspectRatio, cropData.height - deltaY);
+          newHeight = Math.max(minDisplaySize / targetAspectRatio, cropData.height - adjustedDeltaY);
           newWidth = newHeight * targetAspectRatio;
           newX = cropData.x + (cropData.width - newWidth) / 2;
           newY = cropData.y + cropData.height - newHeight;
           break;
         case 5: // right edge
-          newWidth = Math.max(minSize, cropData.width + deltaX);
+          newWidth = Math.max(minDisplaySize, cropData.width + adjustedDeltaX);
           newHeight = newWidth / targetAspectRatio;
           newY = cropData.y + (cropData.height - newHeight) / 2;
           break;
         case 6: // bottom edge
-          newHeight = Math.max(minSize / targetAspectRatio, cropData.height + deltaY);
+          newHeight = Math.max(minDisplaySize / targetAspectRatio, cropData.height + adjustedDeltaY);
           newWidth = newHeight * targetAspectRatio;
           newX = cropData.x + (cropData.width - newWidth) / 2;
           break;
         case 7: // left edge
-          newWidth = Math.max(minSize, cropData.width - deltaX);
+          newWidth = Math.max(minDisplaySize, cropData.width - adjustedDeltaX);
           newHeight = newWidth / targetAspectRatio;
           newX = cropData.x + cropData.width - newWidth;
           newY = cropData.y + (cropData.height - newHeight) / 2;
