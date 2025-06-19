@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { CropData, ExportSettings } from './ImageEditor';
 
@@ -325,8 +324,6 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
       let newWidth = cropData.width;
       let newHeight = cropData.height;
 
-      const sensitivity = 1; // Increased sensitivity for more responsive resizing
-
       switch (resizeHandle) {
         case 0: // top-left corner - maintain aspect ratio
           const targetAspectRatio0 = exportSettings.targetWidth / exportSettings.targetHeight;
@@ -389,15 +386,43 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
 
       onCropChange(newCropData);
 
-      // Update export settings to reflect the new crop dimensions
-      // Calculate the scale factor based on a reference display size
-      const maxDisplaySize = Math.max(containerSize.width * 0.7, containerSize.height * 0.7);
-      const currentDisplaySize = Math.max(newWidth, newHeight);
-      const scaleFactor = maxDisplaySize / currentDisplaySize;
+      // Update export settings based on the crop area change
+      // Calculate a consistent scale based on a reference size
+      const referenceSize = 400; // Use a fixed reference for consistency
       
-      // Calculate new target dimensions
-      const newTargetWidth = Math.round(newWidth * scaleFactor);
-      const newTargetHeight = Math.round(newHeight * scaleFactor);
+      let newTargetWidth, newTargetHeight;
+      
+      // For corner handles, maintain aspect ratio
+      if (resizeHandle <= 3) {
+        const aspectRatio = newWidth / newHeight;
+        if (aspectRatio > 1) {
+          // Landscape
+          newTargetWidth = referenceSize;
+          newTargetHeight = Math.round(referenceSize / aspectRatio);
+        } else {
+          // Portrait or square
+          newTargetHeight = referenceSize;
+          newTargetWidth = Math.round(referenceSize * aspectRatio);
+        }
+      } else {
+        // For edge handles, calculate based on the change ratio
+        const widthRatio = newWidth / cropData.width;
+        const heightRatio = newHeight / cropData.height;
+        
+        if (resizeHandle === 4 || resizeHandle === 6) {
+          // Top or bottom edge - height changed
+          newTargetWidth = exportSettings.targetWidth;
+          newTargetHeight = Math.round(exportSettings.targetHeight * heightRatio);
+        } else {
+          // Left or right edge - width changed
+          newTargetWidth = Math.round(exportSettings.targetWidth * widthRatio);
+          newTargetHeight = exportSettings.targetHeight;
+        }
+      }
+
+      // Ensure minimum dimensions
+      newTargetWidth = Math.max(50, newTargetWidth);
+      newTargetHeight = Math.max(50, newTargetHeight);
 
       onExportSettingsChange({
         targetWidth: newTargetWidth,
