@@ -143,6 +143,7 @@ export const ImageEditor = () => {
               onCropChange={handleCropChange}
               exportSettings={exportSettings}
               onCroppedImageUpdate={handleCroppedImageUpdate}
+              onExportSettingsChange={handleExportSettingsChange}
             />
           </Card>
         </div>
@@ -170,4 +171,3 @@ export const ImageEditor = () => {
       </div>
     </div>
   );
-};

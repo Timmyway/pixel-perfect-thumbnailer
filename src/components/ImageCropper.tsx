@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { CropData, ExportSettings } from './ImageEditor';
 
@@ -8,6 +7,7 @@ interface ImageCropperProps {
   onCropChange: (cropData: CropData) => void;
   exportSettings: ExportSettings;
   onCroppedImageUpdate: (croppedImage: string) => void;
+  onExportSettingsChange: (settings: Partial<ExportSettings>) => void;
 }
 
 export const ImageCropper: React.FC<ImageCropperProps> = ({
@@ -15,7 +15,8 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   cropData,
   onCropChange,
   exportSettings,
-  onCroppedImageUpdate
+  onCroppedImageUpdate,
+  onExportSettingsChange
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -317,20 +318,17 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
       const deltaY = y - dragStart.y;
       
       const targetAspectRatio = exportSettings.targetWidth / exportSettings.targetHeight;
-      const minDisplaySize = 30; // Reduced minimum for better precision
+      const minDisplaySize = 30;
       
       let newX = cropData.x;
       let newY = cropData.y;
       let newWidth = cropData.width;
       let newHeight = cropData.height;
 
-      // Slower, more precise resizing with reduced delta sensitivity
       const sensitivity = 0.5;
       const adjustedDeltaX = deltaX * sensitivity;
       const adjustedDeltaY = deltaY * sensitivity;
 
-      // Calculate new dimensions based on which handle is being dragged
-      // but maintain aspect ratio
       switch (resizeHandle) {
         case 0: // top-left corner
           newWidth = Math.max(minDisplaySize, cropData.width - adjustedDeltaX);
@@ -380,7 +378,6 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
       newX = Math.max(0, Math.min(newX, containerSize.width - newWidth));
       newY = Math.max(0, Math.min(newY, containerSize.height - newHeight));
       
-      // Adjust dimensions if they would exceed container bounds
       if (newX + newWidth > containerSize.width) {
         newWidth = containerSize.width - newX;
         newHeight = newWidth / targetAspectRatio;
@@ -390,15 +387,32 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
         newWidth = newHeight * targetAspectRatio;
       }
 
-      onCropChange({
+      const newCropData = {
         ...cropData,
         x: newX,
         y: newY,
         width: newWidth,
         height: newHeight
+      };
+
+      onCropChange(newCropData);
+
+      // Update export settings to reflect the new crop dimensions
+      // Calculate what the actual output dimensions should be based on the new crop size
+      const maxDisplaySize = Math.max(containerSize.width * 0.7, containerSize.height * 0.7);
+      const currentDisplaySize = Math.max(newWidth, newHeight);
+      const scaleFactor = maxDisplaySize / currentDisplaySize;
+      
+      // Calculate new target dimensions that maintain the aspect ratio
+      const newTargetWidth = Math.round(newWidth * scaleFactor);
+      const newTargetHeight = Math.round(newHeight * scaleFactor);
+
+      onExportSettingsChange({
+        targetWidth: newTargetWidth,
+        targetHeight: newTargetHeight
       });
     }
-  }, [isDragging, isResizing, isPanning, dragStart, cropData, containerSize, onCropChange, resizeHandle, imagePan, exportSettings]);
+  }, [isDragging, isResizing, isPanning, dragStart, cropData, containerSize, onCropChange, resizeHandle, imagePan, exportSettings, onExportSettingsChange]);
 
   const handleEnd = useCallback(() => {
     setIsDragging(false);
