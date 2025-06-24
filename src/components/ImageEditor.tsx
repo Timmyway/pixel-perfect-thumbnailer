@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Upload, Download, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -143,7 +142,6 @@ export const ImageEditor = () => {
               onCropChange={handleCropChange}
               exportSettings={exportSettings}
               onCroppedImageUpdate={handleCroppedImageUpdate}
-              onExportSettingsChange={handleExportSettingsChange}
             />
           </Card>
         </div>
