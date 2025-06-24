@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Settings, Crop } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Settings, Crop, ChevronDown } from 'lucide-react';
 import { CropControls } from './CropControls';
 import { ExportControls } from './ExportControls';
 import { CropData, ExportSettings } from './ImageEditor';
@@ -25,32 +25,26 @@ export const TabControls: React.FC<TabControlsProps> = ({
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="output" className="flex items-center gap-2">
           <Settings className="w-4 h-4" />
-          Output Settings
+          Output
         </TabsTrigger>
         <TabsTrigger value="crop" className="flex items-center gap-2">
           <Crop className="w-4 h-4" />
-          Crop Controls
+          Position
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="output" className="mt-4 space-y-4">
-        <div>
-          <h4 className="text-sm font-medium text-slate-700 mb-3">Export Configuration</h4>
-          <ExportControls
-            exportSettings={exportSettings}
-            onExportSettingsChange={onExportSettingsChange}
-          />
-        </div>
+      <TabsContent value="output" className="mt-4 space-y-3">
+        <ExportControls
+          exportSettings={exportSettings}
+          onExportSettingsChange={onExportSettingsChange}
+        />
       </TabsContent>
       
-      <TabsContent value="crop" className="mt-4 space-y-4">
-        <div>
-          <h4 className="text-sm font-medium text-slate-700 mb-3">Image Positioning</h4>
-          <CropControls
-            cropData={cropData}
-            onCropChange={onCropChange}
-          />
-        </div>
+      <TabsContent value="crop" className="mt-4 space-y-3">
+        <CropControls
+          cropData={cropData}
+          onCropChange={onCropChange}
+        />
       </TabsContent>
     </Tabs>
   );
