@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { CropData, ExportSettings } from './ImageEditor';
 
@@ -7,7 +8,6 @@ interface ImageCropperProps {
   onCropChange: (cropData: CropData) => void;
   exportSettings: ExportSettings;
   onCroppedImageUpdate: (croppedImage: string) => void;
-  onExportSettingsChange: (settings: Partial<ExportSettings>) => void;
 }
 
 export const ImageCropper: React.FC<ImageCropperProps> = ({
@@ -15,17 +15,14 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   cropData,
   onCropChange,
   exportSettings,
-  onCroppedImageUpdate,
-  onExportSettingsChange
+  onCroppedImageUpdate
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
   const [isPanning, setIsPanning] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [resizeHandle, setResizeHandle] = useState(-1);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
   const [cursor, setCursor] = useState<string>('grab');
@@ -35,7 +32,6 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     const img = new Image();
     img.onload = () => {
       setImage(img);
-      // Reset pan when new image is loaded
       setImagePan({ x: 0, y: 0 });
     };
     img.src = imageUrl;
@@ -55,32 +51,28 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     }
   }, []);
 
-  // Calculate display dimensions for crop area based on target dimensions
+  // Calculate display dimensions for crop area based on target aspect ratio
   const getDisplayCropDimensions = useCallback(() => {
     if (!containerSize.width) return { width: 0, height: 0 };
     
     const targetAspectRatio = exportSettings.targetWidth / exportSettings.targetHeight;
     
     // Calculate a reasonable display size that fits in the container
-    // but represents the target dimensions proportionally
+    const maxDisplayWidth = containerSize.width * 0.6;
+    const maxDisplayHeight = containerSize.height * 0.6;
+    
     let displayWidth, displayHeight;
     
-    const maxDisplayWidth = containerSize.width * 0.7;
-    const maxDisplayHeight = containerSize.height * 0.7;
-    
-    // Scale based on which dimension would be the limiting factor
     if (maxDisplayWidth / targetAspectRatio <= maxDisplayHeight) {
-      // Width constrained
       displayWidth = maxDisplayWidth;
       displayHeight = displayWidth / targetAspectRatio;
     } else {
-      // Height constrained
       displayHeight = maxDisplayHeight;
       displayWidth = displayHeight * targetAspectRatio;
     }
     
     // Ensure minimum display size for usability
-    const minDisplaySize = 60;
+    const minDisplaySize = 80;
     if (displayWidth < minDisplaySize || displayHeight < minDisplaySize) {
       if (targetAspectRatio > 1) {
         displayWidth = Math.max(minDisplaySize, displayWidth);
@@ -102,7 +94,6 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     const centerX = (containerSize.width - displayDimensions.width) / 2;
     const centerY = (containerSize.height - displayDimensions.height) / 2;
     
-    // Only update if dimensions actually changed to avoid infinite loops
     const newCropData = {
       ...cropData,
       x: centerX,
@@ -125,9 +116,8 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const container = containerRef.current!;
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
+    const containerWidth = containerSize.width;
+    const containerHeight = containerSize.height;
 
     canvas.width = containerWidth;
     canvas.height = containerHeight;
@@ -164,29 +154,22 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     ctx.lineWidth = 2;
     ctx.strokeRect(cropData.x, cropData.y, cropData.width, cropData.height);
 
-    // Draw resize handles
-    const isMobile = 'ontouchstart' in window;
-    const handleSize = isMobile ? 20 : 12;
+    // Draw corner indicators (visual only, not interactive)
     ctx.fillStyle = '#3b82f6';
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
     
-    const handles = [
-      // Corner handles
-      { x: cropData.x - handleSize/2, y: cropData.y - handleSize/2 }, // top-left
-      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y - handleSize/2 }, // top-right
-      { x: cropData.x - handleSize/2, y: cropData.y + cropData.height - handleSize/2 }, // bottom-left
-      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y + cropData.height - handleSize/2 }, // bottom-right
-      // Edge handles
-      { x: cropData.x + cropData.width/2 - handleSize/2, y: cropData.y - handleSize/2 }, // top
-      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y + cropData.height/2 - handleSize/2 }, // right
-      { x: cropData.x + cropData.width/2 - handleSize/2, y: cropData.y + cropData.height - handleSize/2 }, // bottom
-      { x: cropData.x - handleSize/2, y: cropData.y + cropData.height/2 - handleSize/2 } // left
+    const cornerSize = 8;
+    const corners = [
+      { x: cropData.x, y: cropData.y },
+      { x: cropData.x + cropData.width, y: cropData.y },
+      { x: cropData.x, y: cropData.y + cropData.height },
+      { x: cropData.x + cropData.width, y: cropData.y + cropData.height }
     ];
 
-    handles.forEach(handle => {
-      ctx.fillRect(handle.x, handle.y, handleSize, handleSize);
-      ctx.strokeRect(handle.x, handle.y, handleSize, handleSize);
+    corners.forEach(corner => {
+      ctx.fillRect(corner.x - cornerSize/2, corner.y - cornerSize/2, cornerSize, cornerSize);
+      ctx.strokeRect(corner.x - cornerSize/2, corner.y - cornerSize/2, cornerSize, cornerSize);
     });
 
     // Generate cropped image
@@ -229,41 +212,17 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     onCroppedImageUpdate(dataUrl);
   }, [image, cropData, exportSettings, onCroppedImageUpdate]);
 
-  const getHandleAtPosition = (x: number, y: number) => {
-    const isMobile = 'ontouchstart' in window;
-    const handleSize = isMobile ? 20 : 12;
-    const handles = [
-      // Corner handles
-      { x: cropData.x - handleSize/2, y: cropData.y - handleSize/2, cursor: 'nw-resize' }, // 0: top-left
-      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y - handleSize/2, cursor: 'ne-resize' }, // 1: top-right
-      { x: cropData.x - handleSize/2, y: cropData.y + cropData.height - handleSize/2, cursor: 'sw-resize' }, // 2: bottom-left
-      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y + cropData.height - handleSize/2, cursor: 'se-resize' }, // 3: bottom-right
-      // Edge handles
-      { x: cropData.x + cropData.width/2 - handleSize/2, y: cropData.y - handleSize/2, cursor: 'n-resize' }, // 4: top
-      { x: cropData.x + cropData.width - handleSize/2, y: cropData.y + cropData.height/2 - handleSize/2, cursor: 'e-resize' }, // 5: right
-      { x: cropData.x + cropData.width/2 - handleSize/2, y: cropData.y + cropData.height - handleSize/2, cursor: 's-resize' }, // 6: bottom
-      { x: cropData.x - handleSize/2, y: cropData.y + cropData.height/2 - handleSize/2, cursor: 'w-resize' } // 7: left
-    ];
-
-    return handles.findIndex(handle => 
-      x >= handle.x && x <= handle.x + handleSize &&
-      y >= handle.y && y <= handle.y + handleSize
-    );
-  };
-
   // Helper function to get coordinates from mouse or touch event
   const getEventCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const rect = canvasRef.current!.getBoundingClientRect();
     
     if ('touches' in e) {
-      // Touch event
       const touch = e.touches[0] || e.changedTouches[0];
       return {
         x: touch.clientX - rect.left,
         y: touch.clientY - rect.top
       };
     } else {
-      // Mouse event
       return {
         x: e.clientX - rect.left,
         y: e.clientY - rect.top
@@ -275,16 +234,11 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     e.preventDefault();
     const { x, y } = getEventCoordinates(e);
 
-    const clickedHandle = getHandleAtPosition(x, y);
-
-    if (clickedHandle !== -1) {
-      setIsResizing(true);
-      setResizeHandle(clickedHandle);
-      setDragStart({ x, y });
-    } else if (
+    if (
       x >= cropData.x && x <= cropData.x + cropData.width &&
       y >= cropData.y && y <= cropData.y + cropData.height
     ) {
+      // Start dragging the crop area
       setIsDragging(true);
       setDragStart({ x: x - cropData.x, y: y - cropData.y });
     } else {
@@ -295,7 +249,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   }, [cropData, imagePan]);
 
   const handleMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging && !isResizing && !isPanning) return;
+    if (!isDragging && !isPanning) return;
 
     e.preventDefault();
     const { x, y } = getEventCoordinates(e);
@@ -313,145 +267,18 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
         x: newX,
         y: newY
       });
-    } else if (isResizing) {
-      const deltaX = x - dragStart.x;
-      const deltaY = y - dragStart.y;
-      
-      const minDisplaySize = 30;
-      
-      let newX = cropData.x;
-      let newY = cropData.y;
-      let newWidth = cropData.width;
-      let newHeight = cropData.height;
-
-      switch (resizeHandle) {
-        case 0: // top-left corner - maintain aspect ratio
-          const targetAspectRatio0 = exportSettings.targetWidth / exportSettings.targetHeight;
-          newWidth = Math.max(minDisplaySize, cropData.width - deltaX);
-          newHeight = newWidth / targetAspectRatio0;
-          newX = cropData.x + cropData.width - newWidth;
-          newY = cropData.y + cropData.height - newHeight;
-          break;
-        case 1: // top-right corner - maintain aspect ratio
-          const targetAspectRatio1 = exportSettings.targetWidth / exportSettings.targetHeight;
-          newWidth = Math.max(minDisplaySize, cropData.width + deltaX);
-          newHeight = newWidth / targetAspectRatio1;
-          newY = cropData.y + cropData.height - newHeight;
-          break;
-        case 2: // bottom-left corner - maintain aspect ratio
-          const targetAspectRatio2 = exportSettings.targetWidth / exportSettings.targetHeight;
-          newWidth = Math.max(minDisplaySize, cropData.width - deltaX);
-          newHeight = newWidth / targetAspectRatio2;
-          newX = cropData.x + cropData.width - newWidth;
-          break;
-        case 3: // bottom-right corner - maintain aspect ratio
-          const targetAspectRatio3 = exportSettings.targetWidth / exportSettings.targetHeight;
-          newWidth = Math.max(minDisplaySize, cropData.width + deltaX);
-          newHeight = newWidth / targetAspectRatio3;
-          break;
-        case 4: // top edge - only change height
-          newHeight = Math.max(minDisplaySize, cropData.height - deltaY);
-          newY = cropData.y + cropData.height - newHeight;
-          break;
-        case 5: // right edge - only change width
-          newWidth = Math.max(minDisplaySize, cropData.width + deltaX);
-          break;
-        case 6: // bottom edge - only change height
-          newHeight = Math.max(minDisplaySize, cropData.height + deltaY);
-          break;
-        case 7: // left edge - only change width
-          newWidth = Math.max(minDisplaySize, cropData.width - deltaX);
-          newX = cropData.x + cropData.width - newWidth;
-          break;
-      }
-
-      // Ensure crop area stays within container bounds
-      newX = Math.max(0, Math.min(newX, containerSize.width - newWidth));
-      newY = Math.max(0, Math.min(newY, containerSize.height - newHeight));
-      
-      if (newX + newWidth > containerSize.width) {
-        newWidth = containerSize.width - newX;
-      }
-      if (newY + newHeight > containerSize.height) {
-        newHeight = containerSize.height - newY;
-      }
-
-      const newCropData = {
-        ...cropData,
-        x: newX,
-        y: newY,
-        width: newWidth,
-        height: newHeight
-      };
-
-      onCropChange(newCropData);
-
-      // Update export settings based on the crop area change
-      // Calculate a consistent scale based on a reference size
-      const referenceSize = 400; // Use a fixed reference for consistency
-      
-      let newTargetWidth, newTargetHeight;
-      
-      // For corner handles, maintain aspect ratio
-      if (resizeHandle <= 3) {
-        const aspectRatio = newWidth / newHeight;
-        if (aspectRatio > 1) {
-          // Landscape
-          newTargetWidth = referenceSize;
-          newTargetHeight = Math.round(referenceSize / aspectRatio);
-        } else {
-          // Portrait or square
-          newTargetHeight = referenceSize;
-          newTargetWidth = Math.round(referenceSize * aspectRatio);
-        }
-      } else {
-        // For edge handles, calculate based on the change ratio
-        const widthRatio = newWidth / cropData.width;
-        const heightRatio = newHeight / cropData.height;
-        
-        if (resizeHandle === 4 || resizeHandle === 6) {
-          // Top or bottom edge - height changed
-          newTargetWidth = exportSettings.targetWidth;
-          newTargetHeight = Math.round(exportSettings.targetHeight * heightRatio);
-        } else {
-          // Left or right edge - width changed
-          newTargetWidth = Math.round(exportSettings.targetWidth * widthRatio);
-          newTargetHeight = exportSettings.targetHeight;
-        }
-      }
-
-      // Ensure minimum dimensions
-      newTargetWidth = Math.max(50, newTargetWidth);
-      newTargetHeight = Math.max(50, newTargetHeight);
-
-      onExportSettingsChange({
-        targetWidth: newTargetWidth,
-        targetHeight: newTargetHeight
-      });
     }
-  }, [isDragging, isResizing, isPanning, dragStart, cropData, containerSize, onCropChange, resizeHandle, imagePan, exportSettings, onExportSettingsChange]);
+  }, [isDragging, isPanning, dragStart, cropData, containerSize, onCropChange, imagePan]);
 
   const handleEnd = useCallback(() => {
     setIsDragging(false);
-    setIsResizing(false);
     setIsPanning(false);
-    setResizeHandle(-1);
   }, []);
 
   const handleMouseMoveForCursor = useCallback((e: React.MouseEvent) => {
     const rect = canvasRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-
-    const handle = getHandleAtPosition(x, y);
-    if (handle !== -1) {
-      const cursors = [
-        'nw-resize', 'ne-resize', 'sw-resize', 'se-resize', // corners
-        'n-resize', 'e-resize', 's-resize', 'w-resize' // edges
-      ];
-      setCursor(cursors[handle]);
-      return;
-    }
 
     if (x >= cropData.x && x <= cropData.x + cropData.width &&
         y >= cropData.y && y <= cropData.y + cropData.height) {
@@ -472,7 +299,6 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
         ref={canvasRef}
         className="absolute inset-0 touch-none"
         style={{ cursor }}
-        // Mouse events
         onMouseDown={handleStart}
         onMouseMove={(e) => {
           handleMove(e);
@@ -480,12 +306,21 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
         }}
         onMouseUp={handleEnd}
         onMouseLeave={handleEnd}
-        // Touch events for mobile
         onTouchStart={handleStart}
         onTouchMove={handleMove}
         onTouchEnd={handleEnd}
         onTouchCancel={handleEnd}
       />
+      
+      {/* Instructions overlay */}
+      <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+        Drag crop area to position • Drag outside to pan when zoomed
+      </div>
+      
+      {/* Dimensions display */}
+      <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+        Output: {exportSettings.targetWidth} × {exportSettings.targetHeight}px
+      </div>
     </div>
   );
 };
