@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { Settings, Crop } from 'lucide-react';
 import { CropControls } from './CropControls';
 import { ExportControls } from './ExportControls';
@@ -32,18 +33,24 @@ export const TabControls: React.FC<TabControlsProps> = ({
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="output" className="mt-4">
-        <ExportControls
-          exportSettings={exportSettings}
-          onExportSettingsChange={onExportSettingsChange}
-        />
+      <TabsContent value="output" className="mt-4 space-y-4">
+        <div>
+          <h4 className="text-sm font-medium text-slate-700 mb-3">Export Configuration</h4>
+          <ExportControls
+            exportSettings={exportSettings}
+            onExportSettingsChange={onExportSettingsChange}
+          />
+        </div>
       </TabsContent>
       
-      <TabsContent value="crop" className="mt-4">
-        <CropControls
-          cropData={cropData}
-          onCropChange={onCropChange}
-        />
+      <TabsContent value="crop" className="mt-4 space-y-4">
+        <div>
+          <h4 className="text-sm font-medium text-slate-700 mb-3">Image Positioning</h4>
+          <CropControls
+            cropData={cropData}
+            onCropChange={onCropChange}
+          />
+        </div>
       </TabsContent>
     </Tabs>
   );

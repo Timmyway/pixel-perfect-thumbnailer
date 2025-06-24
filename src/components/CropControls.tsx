@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Separator } from '@/components/ui/separator';
 import { CropData } from './ImageEditor';
 
 interface CropControlsProps {
@@ -37,17 +38,23 @@ export const CropControls: React.FC<CropControlsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Zoom Controls */}
-      <div>
-        <Label className="text-sm font-medium text-slate-700 mb-3 block">
-          Zoom Level: {(cropData.zoom * 100).toFixed(0)}%
-        </Label>
+      {/* Zoom Controls Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Label className="text-sm font-medium text-slate-700">
+            Zoom Level
+          </Label>
+          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+            {(cropData.zoom * 100).toFixed(0)}%
+          </span>
+        </div>
         <div className="flex items-center space-x-3">
           <Button
             size="sm"
             variant="outline"
             onClick={() => handleZoomChange([Math.max(0.1, cropData.zoom - 0.1)])}
             className="p-2"
+            title="Zoom out"
           >
             <ZoomOut className="w-4 h-4" />
           </Button>
@@ -64,15 +71,18 @@ export const CropControls: React.FC<CropControlsProps> = ({
             variant="outline"
             onClick={() => handleZoomChange([Math.min(3, cropData.zoom + 0.1)])}
             className="p-2"
+            title="Zoom in"
           >
             <ZoomIn className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      {/* Position Controls */}
-      <div>
-        <Label className="text-sm font-medium text-slate-700 mb-3 block">
+      <Separator />
+
+      {/* Position Controls Section */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium text-slate-700">
           Crop Position
         </Label>
         <div className="grid grid-cols-2 gap-3">
@@ -101,15 +111,30 @@ export const CropControls: React.FC<CropControlsProps> = ({
         </div>
       </div>
 
-      {/* Current Crop Info */}
-      <div className="p-3 bg-slate-50 rounded-lg">
-        <div className="text-xs text-slate-600">
-          <div>Crop Size: <span className="font-medium">{Math.round(cropData.width)} × {Math.round(cropData.height)}</span></div>
-          <div>Position: <span className="font-medium">({Math.round(cropData.x)}, {Math.round(cropData.y)})</span></div>
-          <div>Zoom: <span className="font-medium">{(cropData.zoom * 100).toFixed(0)}%</span></div>
-        </div>
-        <div className="text-xs text-slate-500 mt-1">
-          Crop size is controlled by Output Dimensions above
+      <Separator />
+
+      {/* Current Status Section */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-slate-700">
+          Current Status
+        </Label>
+        <div className="p-3 bg-slate-50 rounded-lg space-y-1">
+          <div className="text-xs text-slate-600 flex justify-between">
+            <span>Crop Size:</span>
+            <span className="font-medium">{Math.round(cropData.width)} × {Math.round(cropData.height)}</span>
+          </div>
+          <div className="text-xs text-slate-600 flex justify-between">
+            <span>Position:</span>
+            <span className="font-medium">({Math.round(cropData.x)}, {Math.round(cropData.y)})</span>
+          </div>
+          <div className="text-xs text-slate-600 flex justify-between">
+            <span>Zoom:</span>
+            <span className="font-medium">{(cropData.zoom * 100).toFixed(0)}%</span>
+          </div>
+          <Separator className="my-2" />
+          <div className="text-xs text-slate-500 text-center">
+            Crop size is controlled by Output Dimensions
+          </div>
         </div>
       </div>
     </div>
