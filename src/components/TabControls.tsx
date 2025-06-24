@@ -1,8 +1,7 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Settings, Crop, ChevronDown } from 'lucide-react';
+import { Settings, Crop } from 'lucide-react';
 import { CropControls } from './CropControls';
 import { ExportControls } from './ExportControls';
 import { CropData, ExportSettings } from './ImageEditor';
@@ -25,22 +24,22 @@ export const TabControls: React.FC<TabControlsProps> = ({
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="output" className="flex items-center gap-2">
           <Settings className="w-4 h-4" />
-          Output
+          Output Settings
         </TabsTrigger>
         <TabsTrigger value="crop" className="flex items-center gap-2">
           <Crop className="w-4 h-4" />
-          Position
+          Crop Controls
         </TabsTrigger>
       </TabsList>
       
-      <TabsContent value="output" className="mt-4 space-y-3">
+      <TabsContent value="output" className="mt-4">
         <ExportControls
           exportSettings={exportSettings}
           onExportSettingsChange={onExportSettingsChange}
         />
       </TabsContent>
       
-      <TabsContent value="crop" className="mt-4 space-y-3">
+      <TabsContent value="crop" className="mt-4">
         <CropControls
           cropData={cropData}
           onCropChange={onCropChange}
