@@ -104,9 +104,8 @@ export const ImageEditor = () => {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">Edit Your Image</h2>
-        <div className="flex gap-3">
+      <div className="flex justify-between items-center mb-2">        
+        <div className="flex gap-3 mr-0 ml-auto">
           <Button
             onClick={handleReset}
             variant="outline"

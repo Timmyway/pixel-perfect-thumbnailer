@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
     base: mode === 'production' ? (env.VITE_BASE_PATH || '/') : '/',
     server: {
       host: "::",
-      port: 8080,
+      port: 8086,
     },
     plugins: [
       react(),
